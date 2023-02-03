@@ -86,7 +86,19 @@ switch ($action) {
             $b = ORM::for_table('tbl_user_recharges')->where('customer_id', $id_customer)->find_one();
 
             $mikrotik = Router::_info($server);
-            $date_exp = date("Y-m-d", mktime(0, 0, 0, date("m"), date("d") + $p['validity'], date("Y")));
+            if($p['validity_unit']=='Months'){
+                $date_exp = date("Y-m-d", strtotime('+'.$p['validity'].' month'));
+            }else if($p['validity_unit']=='Days'){
+                $date_exp = date("Y-m-d", strtotime('+'.$p['validity'].' day'));
+            }else if($p['validity_unit']=='Hrs'){
+                $datetime = explode(' ',date("Y-m-d H:i:s", strtotime('+'.$p['validity'].' hour')));
+                $date_exp = $datetime[0];
+                $time = $datetime[1];
+            }else if($p['validity_unit']=='Mins'){
+                $datetime = explode(' ',date("Y-m-d H:i:s", strtotime('+'.$p['validity'].' minute')));
+                $date_exp = $datetime[0];
+                $time = $datetime[1];
+            }
 
             if ($type == 'Hotspot') {
                 if ($b) {
@@ -283,6 +295,9 @@ switch ($action) {
                     $t->type = "Hotspot";
                     $t->save();
                 }
+                sendTelegram( "$admin[fullname] Recharge Voucher Hotspot for $c[username]\n".$p['name_plan'].
+                "\nRouter: ".$server.
+                "\nPrice: ".$p['price']);
             } else {
 
                 if ($b) {
@@ -383,9 +398,32 @@ switch ($action) {
                     $t->type = "PPPOE";
                     $t->save();
                 }
+                sendTelegram( "$admin[fullname] Recharge Voucher PPPOE for $c[username]\n".$p['name_plan'].
+                "\nRouter: ".$server.
+                "\nPrice: ".$p['price']);
             }
+
             $in = ORM::for_table('tbl_transactions')->where('username', $c['username'])->order_by_desc('id')->find_one();
             $ui->assign('in', $in);
+
+            sendSMS($c['username'], "*$_c[CompanyName]*\n".
+					"$_c[address]\n".
+					"$_c[phone]\n".
+					"\n\n".
+					"INVOICE: *$in[invoice]*\n".
+                    "$_L[Date] : $date_now\n".
+					"$_L[Sales] : $admin[fullname]\n".
+					"\n\n".
+					"$_L[Type] : *$in[type]*\n".
+					"$_L[Plan_Name] : *$in[plan_name]*\n".
+					"$_L[Plan_Price] : *$_c[currency_code] ".number_format($in['price'],2,$_c['dec_point'],$_c['thousands_sep'])."*\n\n".
+					"$_L[Username] : *$in[username]*\n".
+					"$_L[Password] : **********\n\n".
+					"$_L[Created_On] :\n*".date($_c['date_format'], strtotime($in['recharged_on']))." $in[time]*\n".
+					"$_L[Expires_On] :\n*".date($_c['date_format'], strtotime($in['expiration']))." $in[time]*\n".
+					"\n\n".
+					"$_c[note]");
+
 
             $ui->assign('date', $date_now);
             $ui->display('invoice.tpl');
@@ -682,7 +720,20 @@ switch ($action) {
         $time = date("H:i:s");
 
         $mikrotik = Router::_info($v1['routers']);
-        $date_exp = date("Y-m-d", mktime(0, 0, 0, date("m"), date("d") + $p['validity'], date("Y")));
+
+        if($p['validity_unit']=='Months'){
+            $date_exp = date("Y-m-d", strtotime('+'.$p['validity'].' month'));
+        }else if($p['validity_unit']=='Days'){
+            $date_exp = date("Y-m-d", strtotime('+'.$p['validity'].' day'));
+        }else if($p['validity_unit']=='Hrs'){
+            $datetime = explode(' ',date("Y-m-d H:i:s", strtotime('+'.$p['validity'].' hour')));
+            $date_exp = $datetime[0];
+            $time = $datetime[1];
+        }else if($p['validity_unit']=='Mins'){
+            $datetime = explode(' ',date("Y-m-d H:i:s", strtotime('+'.$p['validity'].' minute')));
+            $date_exp = $datetime[0];
+            $time = $datetime[1];
+        }
 
         if ($v1) {
             if ($v1['type'] == 'Hotspot') {
@@ -882,6 +933,10 @@ switch ($action) {
                 $v1->status = "1";
                 $v1->user = $c['username'];
                 $v1->save();
+
+                sendTelegram( "$admin[fullname] Refill Voucher Hotspot for $c[username]\n".$p['name_plan'].
+                "\nRouter: ".$v1['routers'].
+                "\nPrice: ".$p['price']);
             } else {
                 if ($b) {
                     try {
@@ -985,9 +1040,33 @@ switch ($action) {
                 $v1->status = "1";
                 $v1->user = $c['username'];
                 $v1->save();
+
+
+                sendTelegram( "$admin[fullname] Refill Voucher PPPOE for $c[username]\n".$p['name_plan'].
+                "\nRouter: ".$v1['routers'].
+                "\nPrice: ".$p['price']);
             }
             $in = ORM::for_table('tbl_transactions')->where('username', $c['username'])->order_by_desc('id')->find_one();
             $ui->assign('in', $in);
+
+
+            sendSMS($c['username'], "*$_c[CompanyName]*\n".
+					"$_c[address]\n".
+					"$_c[phone]\n".
+					"\n\n".
+					"INVOICE: *$in[invoice]*\n".
+                    "$_L[Date] : $date_now\n".
+					"$_L[Sales] : $admin[fullname]\n".
+					"\n\n".
+					"$_L[Type] : *$in[type]*\n".
+					"$_L[Plan_Name] : *$in[plan_name]*\n".
+					"$_L[Plan_Price] : *$_c[currency_code] ".number_format($in['price'],2,$_c['dec_point'],$_c['thousands_sep'])."*\n\n".
+					"$_L[Username] : *$in[username]*\n".
+					"$_L[Password] : **********\n\n".
+					"$_L[Created_On] :\n*".date($_c['date_format'], strtotime($in['recharged_on']))." $in[time]*\n".
+					"$_L[Expires_On] :\n*".date($_c['date_format'], strtotime($in['expiration']))." $in[time]*\n".
+					"\n\n".
+					"$_c[note]");
 
             $ui->assign('date', $date_now);
             $ui->display('invoice.tpl');

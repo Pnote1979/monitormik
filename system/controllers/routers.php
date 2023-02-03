@@ -1,11 +1,6 @@
 <?php
 /**
 * PHP Mikrotik Billing (https://ibnux.github.io/phpmixbill/)
-
-
-* @copyright	Copyright (C) 2014-2015 PHP Mikrotik Billing
-* @license		GNU General Public License version 2 or later; see LICENSE.txt
-
 **/
 _admin();
 $ui->assign('_title', $_L['Network'].' - '. $config['CompanyName']);
@@ -15,6 +10,10 @@ $action = $routes['1'];
 $admin = Admin::_info();
 $ui->assign('_admin', $admin);
 
+use PEAR2\Net\RouterOS;
+
+require_once 'system/autoload/PEAR2/Autoload.php';
+
 if($admin['user_type'] != 'Admin'){
 	r2(U."dashboard",'e',$_L['Do_Not_Access']);
 }
@@ -22,7 +21,7 @@ if($admin['user_type'] != 'Admin'){
 switch ($action) {
     case 'list':
 		$ui->assign('xfooter', '<script type="text/javascript" src="ui/lib/c/routers.js"></script>');
-		
+
 		$name = _post('name');
 		if ($name != ''){
 			$paginator = Paginator::bootstrap('tbl_routers','name','%'.$name.'%');
@@ -31,7 +30,7 @@ switch ($action) {
 			$paginator = Paginator::bootstrap('tbl_routers');
 			$d = ORM::for_table('tbl_routers')->offset($paginator['startpoint'])->limit($paginator['limit'])->order_by_desc('id')->find_many();
 		}
-		
+
 		$ui->assign('d',$d);
 		$ui->assign('paginator',$paginator);
         $ui->display('routers.tpl');
@@ -70,7 +69,7 @@ switch ($action) {
         $username = _post('username');
         $password = _post('password');
         $description = _post('description');
-		
+
         $msg = '';
         if(Validator::Length($name,30,4) == false){
             $msg .= 'Name should be between 5 to 30 characters'. '<br>';
@@ -78,10 +77,17 @@ switch ($action) {
         if ($ip_address == '' OR $username == ''){
 			$msg .= $_L['All_field_is_required']. '<br>';
 		}
-		
+
         $d = ORM::for_table('tbl_routers')->where('ip_address',$ip_address)->find_one();
         if($d){
             $msg .= $_L['Router_already_exist']. '<br>';
+        }
+
+        try {
+            $iport = explode(":", $ip_address);
+            $client = new RouterOS\Client($iport[0], $username, $password, ($iport[1]) ? $iport[1] : null);
+        } catch (Exception $e) {
+            $msg .= "Unable to connect to the router.<br>".$e->getMessage().'<br>';
         }
 
         if($msg == ''){
@@ -129,6 +135,15 @@ switch ($action) {
                 $msg .= $_L['Router_already_exist']. '<br>';
             }
         }
+
+
+        try {
+            $iport = explode(":", $ip_address);
+            $client = new RouterOS\Client($iport[0], $username, $password, ($iport[1]) ? $iport[1] : null);
+        } catch (Exception $e) {
+            $msg .= "Unable to connect to the router.<br>".$e->getMessage().'<br>';
+        }
+
 
         if($msg == ''){
             $d->name = $name;

@@ -3,10 +3,6 @@
 /**
  * PHP Mikrotik Billing (https://ibnux.github.io/phpmixbill/)
 
-
- * @copyright	Copyright (C) 2014-2015 PHP Mikrotik Billing
- * @license		GNU General Public License version 2 or later; see LICENSE.txt
-
  **/
 _admin();
 $ui->assign('_title', $_L['Settings'] . '- ' . $config['CompanyName']);
@@ -204,9 +200,12 @@ switch ($action) {
 
     case 'app-post':
         $company = _post('company');
-        $theme = _post('theme');
+        $telegram_bot = _post('telegram_bot');
+        $telegram_target_id = _post('telegram_target_id');
+        $sms_url = _post('sms_url');
         $address = _post('address');
-        if ($company == '' or $theme == '' or $address == '') {
+        $payment_gateway = _post('payment_gateway');
+        if ($company == '') {
             r2(U . 'settings/app', 'e', $_L['All_field_is_required']);
         } else {
             $d = ORM::for_table('tbl_appconfig')->where('setting', 'CompanyName')->find_one();
@@ -222,9 +221,49 @@ switch ($action) {
             $d->value = $phone;
             $d->save();
 
-            $d = ORM::for_table('tbl_appconfig')->where('setting', 'theme')->find_one();
-            $d->value = $theme;
-            $d->save();
+            $d = ORM::for_table('tbl_appconfig')->where('setting', 'telegram_bot')->find_one();
+            if($d){
+                $d->value = $telegram_bot;
+                $d->save();
+            }else{
+                $d = ORM::for_table('tbl_appconfig')->create();
+                $d->setting = 'telegram_bot';
+                $d->value = $telegram_bot;
+                $d->save();
+            }
+
+            $d = ORM::for_table('tbl_appconfig')->where('setting', 'telegram_target_id')->find_one();
+            if($d){
+                $d->value = $telegram_target_id;
+                $d->save();
+            }else{
+                $d = ORM::for_table('tbl_appconfig')->create();
+                $d->setting = 'telegram_target_id';
+                $d->value = $telegram_target_id;
+                $d->save();
+            }
+
+            $d = ORM::for_table('tbl_appconfig')->where('setting', 'sms_url')->find_one();
+            if($d){
+                $d->value = $sms_url;
+                $d->save();
+            }else{
+                $d = ORM::for_table('tbl_appconfig')->create();
+                $d->setting = 'sms_url';
+                $d->value = $sms_url;
+                $d->save();
+            }
+
+            $d = ORM::for_table('tbl_appconfig')->where('setting', 'payment_gateway')->find_one();
+            if($d){
+                $d->value = $payment_gateway;
+                $d->save();
+            }else{
+                $d = ORM::for_table('tbl_appconfig')->create();
+                $d->setting = 'payment_gateway';
+                $d->value = $payment_gateway;
+                $d->save();
+            }
 
             $note = _post('note');
             $d = ORM::for_table('tbl_appconfig')->where('setting', 'note')->find_one();

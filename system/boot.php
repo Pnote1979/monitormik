@@ -3,10 +3,6 @@
 /**
  * PHP Mikrotik Billing (https://ibnux.github.io/phpmixbill/)
 
-
- * @copyright	Copyright (C) 2014-2015 PHP Mikrotik Billing
- * @license		GNU General Public License version 2 or later; see LICENSE.txt
-
  **/
 session_start();
 function r2($to, $ntype = 'e', $msg = '')
@@ -75,11 +71,11 @@ function _notify($msg, $type = 'e')
 }
 
 require_once('system/vendors/smarty/libs/Smarty.class.php');
-$_theme = APP_URL . '/ui/theme/' . $config['theme'];
+$_theme = APP_URL . '/ui/ui';
 $lan_file = 'system/lan/' . $config['language'] . '/common.lan.php';
 require($lan_file);
 $ui = new Smarty();
-$ui->setTemplateDir('ui/theme/' . $config['theme'] . '/');
+$ui->setTemplateDir('ui/ui/');
 $ui->setCompileDir('ui/compiled/');
 $ui->setConfigDir('ui/conf/');
 $ui->setCacheDir('ui/cache/');
@@ -178,6 +174,27 @@ function _log($description, $type = '', $userid = '0')
     $d->ip = $_SERVER["REMOTE_ADDR"];
     $d->save();
 }
+
+
+function sendTelegram($txt)
+{
+    global $_c;
+    if(!empty($_c['telegram_bot']) && !empty($_c['telegram_target_id'])){
+        file_get_contents('https://api.telegram.org/bot'.$_c['telegram_bot'].'/sendMessage?chat_id='.$_c['telegram_target_id'].'&text=' . urlencode($txt));
+    }
+}
+
+
+function sendSMS($phone, $txt)
+{
+    global $_c;
+    if(!empty($_c['sms_url'])){
+        $smsurl = str_replace('[number]',urlencode($phone),$_c['sms_url']);
+        $smsurl = str_replace('[text]',urlencode($txt),$smsurl);
+        file_get_contents($smsurl);
+    }
+}
+
 
 function time_elapsed_string($datetime, $full = false)
 {
